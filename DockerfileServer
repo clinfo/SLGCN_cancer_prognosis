@@ -1,0 +1,101 @@
+# Made on <input the creation date of this Dockerfile>
+# FROM python:3.8.3-buster
+FROM nvidia/cuda:10.1-base-ubuntu18.04
+
+# Need to set to be able to used GPUs
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+# Use utf-8 for proper encoding
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+# Install some basic utilities
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    sudo \
+    git \
+    curl \
+    bzip2 \
+    libx11-6 \
+    autoconf \
+    automake \
+    build-essential \
+    cmake \
+    wget \
+    libjpeg-dev \
+    libpng-dev \
+    libhdf5-serial-dev \
+    fonts-noto-cjk
+
+# Create a working directory
+RUN mkdir /workspaces
+WORKDIR /workspaces
+
+# Create a non-root user and switch to it
+RUN adduser --disabled-password --gecos '' --shell /bin/bash user \
+ && chown -R user:user /workspaces
+RUN echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
+USER user
+
+# All users can use /home/user as their home directory
+ENV HOME=/home/user
+RUN chmod 777 /home/user
+
+ENV CONDA_AUTO_UPDATE_CONDA=false
+ENV PATH=/home/user/miniconda/bin:$PATH
+RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh \
+ && chmod +x ~/miniconda.sh \
+ && ~/miniconda.sh -b -p ~/miniconda \
+ && rm ~/miniconda.sh \
+ && conda install -y python==3.8.1 \
+ && conda clean -ya
+
+# CUDA 10.2-specific steps
+RUN conda install pytorch torchvision torchaudio cudatoolkit=10.1 -c pytorch && conda clean -ya
+
+# Install some dependencies with particular versions
+# RUN pip install "torch==1.7" "torchvision==0.8"
+
+# Install others with any version
+RUN pip install tensorboard pandas matplotlib tqdm seaborn jupyter notebook tables scikit-learn signatureanalyzer joblib
+
+RUN pip install scipy
+RUN pip install --no-index torch-scatter -f https://pytorch-geometric.com/whl/torch-1.7.0+cu101.html
+RUN pip install --no-index torch-sparse -f https://pytorch-geometric.com/whl/torch-1.7.0+cu101.html
+RUN pip install --no-index torch-cluster -f https://pytorch-geometric.com/whl/torch-1.7.0+cu101.html
+RUN pip install --no-index torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.7.0+cu101.html
+RUN pip install torch-geometric
+
+# Do any other installation steps, ex:
+# Install extra font to be able to plot japanese text
+# RUN apt-get install -y fonts-noto-cjk
+
+# Add code to python path
+ENV PYTHONPATH=/workspaces
+
+# Expose some ports, this can be used if we want to automatically
+# map ports externally but is not required for manual mapping
+EXPOSE 6042
+EXPOSE 8888
+EXPOSE 6006
+
+# Setup a non-root user if specified.
+# This is so that created files have the same permissions as the user
+ARG host_uid=0
+ARG host_gid=0
+ARG host_user=root
+RUN useradd --uid ${host_uid} ${host_user} && \
+        mkdir -p /home/${host_user} && \
+        chown -R ${host_uid}:${host_gid} /home/${host_user} && \
+        echo "Using user: "${host_user} || \
+        echo "User already exist, creation skipped." 
+USER ${host_user}
+
+# Set the entry point into the container, can be overwritten
+# with --workdir="/..."
+# WORKDIR /workdir
+
+# Set the default command
+CMD ["bash"]

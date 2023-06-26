@@ -1,0 +1,70 @@
+# Made on <input the creation date of this Dockerfile>
+FROM python:3.8.3-buster
+
+# Need to set to be able to used GPUs
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+# Use utf-8 for proper encoding
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+# Install some basic utilities
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    sudo \
+    git \
+    curl \
+    bzip2 \
+    libx11-6 \
+    autoconf \
+    automake \
+    build-essential \
+    cmake \
+    wget \
+    libjpeg-dev \
+    libpng-dev
+
+# Install some dependencies with particular versions
+RUN pip install "torch==1.7.0+cpu" "torchvision==0.8.1+cpu" -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install scipy
+RUN pip install --no-index torch-scatter -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
+RUN pip install --no-index torch-sparse -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
+RUN pip install --no-index torch-cluster -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
+RUN pip install --no-index torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.7.0+cpu.html
+RUN pip install torch-geometric
+
+# Install others with any version
+RUN pip install tensorboard pandas matplotlib tqdm seaborn jupyter notebook tables scikit-learn signatureanalyzer tensorboard joblib
+
+# Do any other installation steps, ex:
+# Install extra font to be able to plot japanese text
+RUN apt-get install -y fonts-noto-cjk
+
+# Add code to python path
+ENV PYTHONPATH=/workdir
+
+# Expose some ports, this can be used if we want to automatically
+# map ports externally but is not required for manual mapping
+EXPOSE 6042
+EXPOSE 8888
+
+# Setup a non-root user if specified.
+# This is so that created files have the same permissions as the user
+ARG host_uid=0
+ARG host_gid=0
+ARG host_user=root
+RUN useradd --uid ${host_uid} ${host_user} && \
+        mkdir -p /home/${host_user} && \
+        chown -R ${host_uid}:${host_gid} /home/${host_user} && \
+        echo "Using user: "${host_user} || \
+        echo "User already exist, creation skipped." 
+USER ${host_user}
+
+# Set the entry point into the container, can be overwritten
+# with --workdir="/..."
+WORKDIR /workdir
+
+# Set the default command
+CMD ["bash"]
