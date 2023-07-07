@@ -42,7 +42,7 @@ The following describes the expected config.json file. By default this file shou
 
 * CANCER_TYPE (true/false): True will include the Cancer Type features in the Sample Features.
 
-* GRAPH_DATA_FILE: Source for the Reactome dataset.
+* GRAPH_DATA_FILE: Source for the Pathway Commons dataset.
 * ENSEMBLE_TO_HGNC_DATA_FILE: Ensembl to HGNC dictionary file.
 * VERTICES_DIC: file to save the vertices integer encoding dictionary.
 * RELATIONSHIPS_DIC: file to save the edges integer encoding dictionary.
